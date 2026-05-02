@@ -11,17 +11,35 @@ const LOCAL_API_BASE_URL = "http://127.0.0.1:8000/financial_tracker/api";
 const DEPLOYED_API_BASE_URL =
   "https://finance-tracker-production-a01a.up.railway.app/financial_tracker/api";
 
-function getBaseUrl(): string {
-  const configured = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
-  if (configured) {
-    // Avoid accidental double slashes when endpoints are appended.
-    return configured.replace(/\/+$/, "");
-  }
+declare const process:
+  | { env?: Record<string | number | symbol, string | undefined> }
+  | undefined;
+
+function normalizeBaseUrl(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\/+$/, "");
+}
+
+function configuredApiBaseUrl(): string | null {
+  const expo = normalizeBaseUrl(process?.env?.EXPO_PUBLIC_API_BASE_URL);
+  if (expo) return expo;
+
+  const next = normalizeBaseUrl(process?.env?.NEXT_PUBLIC_API_BASE_URL);
+  if (next) return next;
+
+  return null;
+}
+
+function fallbackBaseUrl(): string {
   const isDev = typeof __DEV__ !== "undefined" && __DEV__;
   return isDev ? LOCAL_API_BASE_URL : DEPLOYED_API_BASE_URL;
 }
 
-const BASE_URL = getBaseUrl();
+function getBaseUrl(): string {
+  return configuredApiBaseUrl() ?? fallbackBaseUrl();
+}
 
 export type ApiError = {
     status: number;
@@ -32,7 +50,7 @@ export type ApiError = {
 /** builds a full api url from a relative endpoint */
 function buildUrl(endpoint: string) {
     const clean = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-    return `${BASE_URL}/${clean}`;
+    return `${getBaseUrl()}/${clean}`;
 }
 
 /** tries to parse json and falls back to plain text */
