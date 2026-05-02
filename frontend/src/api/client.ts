@@ -7,7 +7,21 @@
 
 import { tokenStorage } from "./tokenStorage";
 
-const BASE_URL = "http://127.0.0.1:8000/financial_tracker/api"; // "https://cs-webapps.bu.edu/fseely/financial_tracker/api";
+const LOCAL_API_BASE_URL = "http://127.0.0.1:8000/financial_tracker/api";
+const DEPLOYED_API_BASE_URL =
+  "https://finance-tracker-production-a01a.up.railway.app/financial_tracker/api";
+
+function getBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_API_BASE_URL?.trim();
+  if (configured) {
+    // Avoid accidental double slashes when endpoints are appended.
+    return configured.replace(/\/+$/, "");
+  }
+  const isDev = typeof __DEV__ !== "undefined" && __DEV__;
+  return isDev ? LOCAL_API_BASE_URL : DEPLOYED_API_BASE_URL;
+}
+
+const BASE_URL = getBaseUrl();
 
 export type ApiError = {
     status: number;
